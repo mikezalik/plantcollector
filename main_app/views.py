@@ -1,6 +1,10 @@
+from typing import List
 from django.shortcuts import render, redirect
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from .models import Plant
+import os
+import boto3
+import uuid
+from .models import Plant, Photo
 from .forms import CareForm
 
 # View functions
@@ -19,12 +23,12 @@ def plants_index(request):
 
 def plants_detail(request, plant_id):
     plant = Plant.objects.get(id=plant_id)
-    care_form = CareForm
+    care_form = CareForm()
     return render(request, 'plants/detail.html', {'plant': plant, 'care_form': care_form})
 
 class PlantCreate(CreateView):
     model = Plant
-    fields = '__all__'
+    fields = ['name', 'species', 'description']
 
 class PlantUpdate(UpdateView):
     model = Plant
@@ -42,3 +46,17 @@ def add_care(request, plant_id):
         new_care.plant_id = plant_id
         new_care.save()
     return redirect('detail', plant_id = plant_id)
+
+def add_photo(request, plant_id):
+    photo_file = request.FILES.get('photo-file', None)
+    if photo_file:
+        s3 = boto3.client('s3')
+        key = uuid.uuid4().hex[:6] + photo_file.name[photo_file.name.rfind('.'):]
+        try:
+            bucket = os.environ['S3_BUCKET']
+            s3.upload_fileobj(photo_file, bucket, key)
+            url = f"{os.environ['S3_BASE_URL']}{bucket}/{key}"
+            Photo.objects.create(url=url, plant_id=plant_id)
+        except:
+            print('An error occurred uploading your file to S3')
+    return redirect('detail', plant_id=plant_id)
