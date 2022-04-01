@@ -82,4 +82,4 @@ I started the development process by setting PostgreSQL up. I then started with 
 
 ## Future Improvements 🚀
 
-I plan on adding more news articles to be views at one time.
+I'd like to implement the ability for users to review each other's plants and see other collections.
